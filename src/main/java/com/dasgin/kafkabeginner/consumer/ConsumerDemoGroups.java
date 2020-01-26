@@ -1,4 +1,4 @@
-package com.dasgin.kafkabeginner.tutorial1;
+package com.dasgin.kafkabeginner.consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

@@ -1,10 +1,9 @@
-package com.dasgin.kafkabeginner.tutorial1;
+package com.dasgin.kafkabeginner.consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
@@ -15,25 +14,26 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-public class ConsumerDemoAssignSeek {
+public class ConsumerDemoWithThreads {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerDemoAssignSeek.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConsumerDemoWithThreads.class.getName());
 
     public static void main(String[] args) {
-        new ConsumerDemoAssignSeek().run();
+        new ConsumerDemoWithThreads().run();
     }
 
-    private ConsumerDemoAssignSeek(){}
+    private ConsumerDemoWithThreads(){}
 
     private void run(){
         String bootstrapServers = "127.0.0.1:9092";
+        String groupId = "my-six-applicarion";
         String topic = "first_topic";
 
         CountDownLatch latch = new CountDownLatch(1);
         LOGGER.info("Creating the consumer thread");
 
         // create a consumer runnable
-        Runnable consumerRunnable = new ConsumerRunnable(bootstrapServers, topic, latch);
+        Runnable consumerRunnable = new ConsumerRunnable(bootstrapServers, groupId, topic, latch);
 
         // start the thread
         Thread myThread = new Thread(consumerRunnable);
@@ -67,7 +67,7 @@ public class ConsumerDemoAssignSeek {
         private CountDownLatch latch;
         private KafkaConsumer<String, String> consumer;
 
-        public ConsumerRunnable(String bootstrapServers, String topic, CountDownLatch latch){
+        public ConsumerRunnable(String bootstrapServers, String groupId, String topic, CountDownLatch latch){
             this.latch = latch;
 
             // create consumer configs
@@ -75,38 +75,25 @@ public class ConsumerDemoAssignSeek {
             properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
             properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+            properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
             properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
             consumer = new KafkaConsumer<>(properties);
 
-            // assign
-            TopicPartition partitionReadFrom = new TopicPartition(topic, 0);
-            long offsetReadFrom = 15;
-            consumer.assign(Collections.singletonList(partitionReadFrom));
-
-            // seek
-            consumer.seek(partitionReadFrom, offsetReadFrom);
+            // subscribe consumer to our topic
+            consumer.subscribe(Collections.singletonList(topic));
         }
 
         @Override
         public void run() {
             // poll for new data
             try {
-                int numberOfMessagesRead = 5;
-                boolean keepOnReading = true;
-                int numberOfMessagesReadSoFar = 0;
-
-                while(keepOnReading){
+                while(true){
                     ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
                     for (ConsumerRecord record : records) {
-                        numberOfMessagesReadSoFar += 1;
                         LOGGER.info("Key: " + record.key() + ", Value : " + record.value());
                         LOGGER.info("Partition: " + record.partition() + ", Offset: " + record.offset());
-                        if(numberOfMessagesReadSoFar >= numberOfMessagesRead){
-                            keepOnReading = false;
-                            break;
-                        }
                     }
                 }
             } catch (WakeupException e) {

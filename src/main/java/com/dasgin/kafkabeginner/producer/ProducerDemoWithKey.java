@@ -1,4 +1,4 @@
-package com.dasgin.kafkabeginner.tutorial1;
+package com.dasgin.kafkabeginner.producer;
 
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
