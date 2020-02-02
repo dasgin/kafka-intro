@@ -1,53 +1,50 @@
-**Kafka**
+Kafka Reis
+=========================
 
-./kafka-console-producer.sh --broker-list 127.0.0.1:9092 --topic second_topic<br/>
-./kafka-server-stop.sh
+Introduction
+-----------------------------
 
-**Start Kafka Cluster**
+An example which shows how to play with Kafka.
 
-./zookeeper-server-start.sh ../config/zookeeper.properties &<br/>
-./kafka-server-start.sh ../config/server.properties &
+Downloading Kafka
+-----------------------------
 
-**List topics**
+You will need to download kafka 
 
-./kafka-topics.sh --list --bootstrap-server localhost:9092<br/>
+    $ curl "https://www.apache.org/dist/kafka/2.1.1/kafka_2.11-2.1.1.tgz" -o ~/Downloads/kafka.tgz
 
-**Delete topic**
 
-./kafka-topics.sh --bootstrap-server localhost:9092 --topic settlements --delete<br/>
-./kafka-topics.sh --bootstrap-server localhost:9092 --topic settlement.public.settlement --delete<br/>
+Preparing Kafka
+-----------------------------
 
-**Consumer groups**
+This example requires that Kafka Server is up and running.
 
-./kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group payment-order --describe<br/>
+    $ ${KAFKA}/bin/zookeeper-server-start.sh ${KAFKA}/config/zookeeper.properties
+    $ ${KAFKA}/bin/kafka-server-start.sh ${KAFKA}/config/server.properties
 
-**Consume logs**
+Let's work on kafka
+-----------------------------
 
-./kafka-console-consumer.sh --bootstrap-server localhost:9092 --from-beginning --topic settlements<br/> | jq
+List topics
 
-**Consumer group offset update**
+    $ ${KAFKA}/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
 
-./kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group payment-statement --topic settlements --reset-offsets --to-offset 1<br/>
+Create topics
+    
+    $ ${KAFKA}/bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 2 --topic log
 
-**Kafka Connect**
+Consume logs
 
-curl -i -X POST -H "Accept:application/json" -H"Content-Type:application/json" http://localhost:8083/connectors/ -d@postgres-connector.json<br/>
+    $ ${KAFKA}/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --from-beginning --topic log | jq
 
-**Delete connector**
+Inspect specific consumer groups
 
-curl -X DELETE localhost:8083/connectors/settlement-connector<br/>
-curl localhost:8083/connectors/<br/>
-curl -s localhost:8083/connectors/settlement-connector/status | jq<br/>
-curl -s localhost:8083/connectors/settlement-connector/status | jq -c -M '[.name,.connector.state,.tasks[].state]|join(":|:")'<br/>
-curl -s localhost:8083/connectors/settlement-connector/status | jq -c -M '[.name,.connector.state,.tasks[].state]|join(":|:")' | jq<br/>
+    $ ${KAFKA}/bin/kafka-consumer-groups.sh  --bootstrap-server localhost:9092 --group order --describe
 
-**Log count in specific topic**
+Reset offsets for specific consumer groups
 
-kafkacat -b localhost:9092 -t settlement.public.settlement -p 0 -o -1 -e<br/>
-lsof -nP -i4TCP:2181 | grep LISTEN<br/>
-curl -i -X POST -H "Accept:application/json" -H"Content-Type:application/json" http://localhost:8083/connectors/ -d@postgres-connector.json<br/>
+    $ ${KAFKA}/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group payment --topic log --reset-offsets --to-offset 1
 
-**set offset with timestamp**
+Delete topics
 
-./kafka-consumer-groups.sh --bootstrap-server 10.10.43.49:9092 --group settlement-api --reset-offsets --topic settlements --to-datetime 2020-01-13T04:25:00.000<br/>
-./kafka-consumer-groups.sh --bootstrap-server 10.250.221.72:9092 --group kafka2kafka --reset-offsets --topic claim-events-topic --to-datetime 2020-01-13T01:40:00.000 --execute<br/>
+    $ ${KAFKA}/bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic log --delete
